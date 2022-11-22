@@ -1,0 +1,116 @@
+
+# Create a model that shows providers (e.g. dietitians), their clients, and journal entries.
+# ● Both providers and clients have a name and an email address.
+# ● Providers have many clients
+# ● Clients usually have one Provider but can have more than one.
+# ● Clients have a plan that they paid for, signified by the string "basic" or "premium". For each 
+# provider that a client is signed up with, they have one plan.
+# ● Clients post journal entries. These consist of freeform text.
+
+
+#Find all clients for a particular provider
+=> Provider.find_by(name: "David").clients
+
+#Find all providers for a particular client
+=> Client.find_by(name: "Lisa").providers
+
+#Find all of a particular client's journal entries, sorted by date posted
+=> Client.find_by(name: "Lisa").journal_entries.order(created_at: :desc)
+
+#Find all of the journal entries of all of the clients of a particular provider, sorted by date posted
+=> Provider.find_by(name: "David").clients.journal_entries.order(created_at: :desc)
+
+#Find all of the journal entries of all of the clients of a particular provider, sorted by date posted, and grouped by date
+=> Provider.find_by(name: "David").clients.journal_entries.order(created_at: :desc).group_by {|journal_entry| journal_entry.created_at.to_date}
+
+#Find all of the journal entries of all of the clients of a particular provider, sorted by date posted, and grouped by date, and limited to the most recent 5 entries.
+=> Provider.find_by(name: "David").clients.journal_entries.order(created_at: :desc).group_by {|journal_entry| journal_entry.created_at.to_date}.first(5)
+ 
+
+Suggestions
+
+class Provider < ActiveRecord::Base
+  has_many :clients
+  validates :name, :email, presence: true
+end
+
+class Client < ActiveRecord::Base
+  belongs_to :provider
+  has_many :journal_entries
+  validates :name, :email, :plan, presence: true
+end
+
+class JournalEntry < ActiveRecord::Base
+  belongs_to :client
+  validates :text, presence: true
+end
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Path: db/migrate/20160520155239_create_providers.rb
+
+class CreateProviders < ActiveRecord::Migration
+  def change
+    create_table :providers do |t|
+      t.string :name
+      t.string :email
+      t.timestamps null: false
+    end
+  end
+end
+
+# Path: db/migrate/20160520155320_create_clients.rb
+
+class CreateClients < ActiveRecord::Migration
+  def change
+    create_table :clients do |t|
+      t.string :name
+      t.string :email
+      t.string :plan
+      t.references :provider, index: true, foreign_key: true
+      t.timestamps null: false
+    end
+  end
+end
+
+# Path: db/migrate/20160520155412_create_journal_entries.rb
+
+class CreateJournalEntries < ActiveRecord::Migration
+  def change
+    create_table :journal_entries do |t|
+      t.text : description
+      t.references :client, index: true, foreign_key: true
+      t.timestamps null: false
+    end
+  end
+end
+
+
+Suggestion v2
+
+class Provider < ActiveRecord::Base
+  has_many :clients
+  validates :name, :email, presence: true
+  validates :email, uniqueness: true
+end
+
+class Client < ActiveRecord::Base
+  belongs_to :provider
+  has_many :journal_entries
+  validates :name, :email, :plan, presence: true
+  validates :email, uniqueness: true
+end
+
+class JournalEntry < ActiveRecord::Base
+  belongs_to :client
+  validates :text, presence: true
+end
+
+
+
+
+
+
+
+
+
